@@ -327,211 +327,211 @@ export default function ModulesPage() {
             </CardContent>
           </Card>
 
-          {/* Modules avec affichage en grille 2x2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {modules.map((module) => (
-              <Card key={module.id} className="overflow-hidden shadow-lg">
-                <div className="relative">
-                  <img
-                    src={module.thumbnail || 'https://images.pexels.com/photos/2825806/pexels-photo-2825806.jpeg?auto=compress&cs=tinysrgb&w=800'}
-                    alt={module.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-white/90 text-blue-900 backdrop-blur-sm">
-                      Module {module.order}
-                    </Badge>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    {module.isCompleted ? (
-                      <Badge className="bg-green-500">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Terminé
-                      </Badge>
-                    ) : module.isUnlocked ? (
-                      <Badge className="bg-orange-500">
-                        <Play className="w-4 h-4 mr-1" />
-                        Disponible
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">
-                        <Lock className="w-4 h-4 mr-1" />
-                        Verrouillé
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+          {/* Modules avec affichage en grille 2x2 corrigée */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 items-start">
+  {modules.map((module) => (
+    <Card key={module.id} className="overflow-hidden shadow-lg">
+      <div className="relative">
+        <img
+          src={module.thumbnail || 'https://images.pexels.com/photos/2825806/pexels-photo-2825806.jpeg?auto=compress&cs=tinysrgb&w=800'}
+          alt={module.title}
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute top-4 left-4">
+          <Badge className="bg-white/90 text-blue-900 backdrop-blur-sm">
+            Module {module.order}
+          </Badge>
+        </div>
+        <div className="absolute top-4 right-4">
+          {module.isCompleted ? (
+            <Badge className="bg-green-500">
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Terminé
+            </Badge>
+          ) : module.isUnlocked ? (
+            <Badge className="bg-orange-500">
+              <Play className="w-4 h-4 mr-1" />
+              Disponible
+            </Badge>
+          ) : (
+            <Badge variant="secondary">
+              <Lock className="w-4 h-4 mr-1" />
+              Verrouillé
+            </Badge>
+          )}
+        </div>
+      </div>
 
-                <CardContent className="p-6">
-                  {/* Titre et description du module */}
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-blue-900 mb-3">{module.title}</h2>
-                    <p className="text-gray-600 leading-relaxed line-clamp-3">{module.description}</p>
-                  </div>
+      <CardContent className="p-6">
+        {/* Titre et description du module */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-blue-900 mb-3">{module.title}</h2>
+          <p className="text-gray-600 leading-relaxed line-clamp-3">{module.description}</p>
+        </div>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center text-gray-500 text-sm">
-                        <Clock className="w-4 h-4 mr-1" />
-                        {formatDuration(getTotalModuleDuration(module))}
-                      </div>
-                      <div className="flex items-center text-gray-500 text-sm">
-                        <BookOpen className="w-4 h-4 mr-1" />
-                        {module.chapters?.length || 0} chapitre{(module.chapters?.length || 0) > 1 ? 's' : ''}
-                      </div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center text-gray-500 text-sm">
+              <Clock className="w-4 h-4 mr-1" />
+              {formatDuration(getTotalModuleDuration(module))}
+            </div>
+            <div className="flex items-center text-gray-500 text-sm">
+              <BookOpen className="w-4 h-4 mr-1" />
+              {module.chapters?.length || 0} chapitre{(module.chapters?.length || 0) > 1 ? 's' : ''}
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => toggleModuleExpansion(module.id)}
+          >
+            {expandedModules.has(module.id) ? 'Réduire' : 'Voir les chapitres'}
+          </Button>
+        </div>
+
+        {typeof module.progress === 'number' && (
+          <div className="mb-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Progression du module</span>
+              <span>{Math.round(module.progress)}%</span>
+            </div>
+            <Progress value={module.progress} className="h-2" />
+          </div>
+        )}
+
+        {/* Chapitres */}
+        {expandedModules.has(module.id) && module.chapters && (
+          <div className="mt-6 space-y-4">
+            {module.chapters.map((chapter) => (
+              <Card key={chapter.id} className="border-l-4 border-l-blue-500">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Badge variant="outline" className="mb-2">
+                        Chapitre {chapter.order}
+                      </Badge>
+                      <CardTitle className="text-lg">{chapter.title}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{chapter.description}</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleModuleExpansion(module.id)}
-                    >
-                      {expandedModules.has(module.id) ? 'Réduire' : 'Voir les chapitres'}
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      {chapter.isCompleted ? (
+                        <Badge className="bg-green-500">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Terminé
+                        </Badge>
+                      ) : chapter.isUnlocked ? (
+                        <Badge className="bg-orange-500">
+                          Disponible
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Verrouillé
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-
-                  {typeof module.progress === 'number' && (
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>Progression du module</span>
-                        <span>{Math.round(module.progress)}%</span>
-                      </div>
-                      <Progress value={module.progress} className="h-2" />
+                </CardHeader>
+                <CardContent>
+                  {/* Contenus du chapitre */}
+                  {chapter.contents && (
+                    <div className="space-y-2 mb-4">
+                      {chapter.contents.map((content) => (
+                        <div 
+                          key={content.id} 
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            content.isCompleted ? 'bg-green-50 border-green-200' :
+                            content.isUnlocked ? 'bg-blue-50 border-blue-200' :
+                            'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <div className={`p-2 rounded-full flex-shrink-0 ${
+                              content.isCompleted ? 'bg-green-500 text-white' :
+                              content.isUnlocked ? 'bg-blue-500 text-white' :
+                              'bg-gray-400 text-white'
+                            }`}>
+                              {getContentIcon(content.type)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h5 className="font-medium text-sm truncate">{content.title}</h5>
+                              <div className="flex items-center text-xs text-gray-500">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formatDuration(content.duration)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            {typeof content.progress === 'number' && content.progress > 0 && (
+                              <div className="text-xs text-gray-600">
+                                {Math.round(content.progress)}%
+                              </div>
+                            )}
+                            {content.isCompleted ? (
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                            ) : content.isUnlocked ? (
+                              <Link href={`/content/${content.id}`}>
+                                <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1">
+                                  {content.type === 'VIDEO' ? 'Regarder' : 'Écouter'}
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Lock className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
-                  {/* Chapitres */}
-                  {expandedModules.has(module.id) && module.chapters && (
-                    <div className="mt-6 space-y-4">
-                      {module.chapters.map((chapter) => (
-                        <Card key={chapter.id} className="border-l-4 border-l-blue-500">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <Badge variant="outline" className="mb-2">
-                                  Chapitre {chapter.order}
-                                </Badge>
-                                <CardTitle className="text-lg">{chapter.title}</CardTitle>
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{chapter.description}</p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                {chapter.isCompleted ? (
-                                  <Badge className="bg-green-500">
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    Terminé
-                                  </Badge>
-                                ) : chapter.isUnlocked ? (
-                                  <Badge className="bg-orange-500">
-                                    Disponible
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="secondary">
-                                    <Lock className="w-3 h-3 mr-1" />
-                                    Verrouillé
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            {/* Contenus du chapitre */}
-                            {chapter.contents && (
-                              <div className="space-y-2 mb-4">
-                                {chapter.contents.map((content) => (
-                                  <div 
-                                    key={content.id} 
-                                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                                      content.isCompleted ? 'bg-green-50 border-green-200' :
-                                      content.isUnlocked ? 'bg-blue-50 border-blue-200' :
-                                      'bg-gray-50 border-gray-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                      <div className={`p-2 rounded-full flex-shrink-0 ${
-                                        content.isCompleted ? 'bg-green-500 text-white' :
-                                        content.isUnlocked ? 'bg-blue-500 text-white' :
-                                        'bg-gray-400 text-white'
-                                      }`}>
-                                        {getContentIcon(content.type)}
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <h5 className="font-medium text-sm truncate">{content.title}</h5>
-                                        <div className="flex items-center text-xs text-gray-500">
-                                          <Clock className="w-3 h-3 mr-1" />
-                                          {formatDuration(content.duration)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2 flex-shrink-0">
-                                      {typeof content.progress === 'number' && content.progress > 0 && (
-                                        <div className="text-xs text-gray-600">
-                                          {Math.round(content.progress)}%
-                                        </div>
-                                      )}
-                                      {content.isCompleted ? (
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                      ) : content.isUnlocked ? (
-                                        <Link href={`/content/${content.id}`}>
-                                          <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1">
-                                            {content.type === 'VIDEO' ? 'Regarder' : 'Écouter'}
-                                          </Button>
-                                        </Link>
-                                      ) : (
-                                        <Lock className="w-4 h-4 text-gray-400" />
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Quiz du chapitre */}
-                            {chapter.quiz && (
-                              <div className="border-t pt-4">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <HelpCircle className="w-4 h-4 text-purple-500" />
-                                    <span className="text-sm font-medium">Quiz de validation</span>
-                                  </div>
-                                  {chapter.allContentsCompleted && !chapter.quizPassed ? (
-                                    <Link href={`/quiz/${chapter.id}`}>
-                                      <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
-                                        Passer le QCM
-                                      </Button>
-                                    </Link>
-                                  ) : chapter.quizPassed ? (
-                                    <Badge className="bg-green-500">
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      Chapitre validé
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="secondary">
-                                      <Lock className="w-3 h-3 mr-1" />
-                                      Terminez le contenu d'abord
-                                    </Badge>
-                                  )}
-                                </div>
-                                
-                                {/* Affichage du statut du chapitre */}
-                                <div className="mt-2 text-xs text-gray-500">
-                                  {chapter.allContentsCompleted && chapter.quizPassed ? (
-                                    <span className="text-green-600 font-medium">✓ Chapitre entièrement validé</span>
-                                  ) : chapter.allContentsCompleted ? (
-                                    <span className="text-orange-600 font-medium">⚠ QCM requis pour validation</span>
-                                  ) : (
-                                    <span className="text-gray-500">Contenu à terminer</span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
+                  {/* Quiz du chapitre */}
+                  {chapter.quiz && (
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <HelpCircle className="w-4 h-4 text-purple-500" />
+                          <span className="text-sm font-medium">Quiz de validation</span>
+                        </div>
+                        {chapter.allContentsCompleted && !chapter.quizPassed ? (
+                          <Link href={`/quiz/${chapter.id}`}>
+                            <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
+                              Passer le QCM
+                            </Button>
+                          </Link>
+                        ) : chapter.quizPassed ? (
+                          <Badge className="bg-green-500">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Chapitre validé
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Terminez le contenu d'abord
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Affichage du statut du chapitre */}
+                      <div className="mt-2 text-xs text-gray-500">
+                        {chapter.allContentsCompleted && chapter.quizPassed ? (
+                          <span className="text-green-600 font-medium">✓ Chapitre entièrement validé</span>
+                        ) : chapter.allContentsCompleted ? (
+                          <span className="text-orange-600 font-medium">⚠ QCM requis pour validation</span>
+                        ) : (
+                          <span className="text-gray-500">Contenu à terminer</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
             ))}
           </div>
+        )}
+      </CardContent>
+    </Card>
+  ))}
+</div>
 
           {/* Section des certificats */}
           <CertificatesSection />
