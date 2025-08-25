@@ -78,6 +78,7 @@ export default function ContentDetailPage() {
   const [updateInProgress, setUpdateInProgress] = useState(false)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  const [mediaReady, setMediaReady] = useState(false)
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null)
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
 
@@ -96,7 +97,6 @@ export default function ContentDetailPage() {
     
     setUpdateInProgress(true)
     try {
-      // Un contenu est complété UNIQUEMENT à 100%
       const isCompleted = forceComplete || (watchTime >= content.duration)
       
       const response = await fetch(`/api/content-progress/${params.id}`, {
@@ -111,7 +111,6 @@ export default function ContentDetailPage() {
       if (!response.ok) {
         console.error('Erreur lors de la mise à jour de la progression')
       } else {
-        // Si le contenu est complété à 100%, déclencher la redirection vers le QCM
         if (isCompleted && !content.isCompleted) {
           setContent(prev => prev ? { ...prev, isCompleted: true } : null)
           setShowCompletionModal(true)
@@ -154,12 +153,12 @@ export default function ContentDetailPage() {
     }
   }, [session, params.id, router])
 
-  // Gestion du lecteur média
+  // Configuration des événements média
   useEffect(() => {
     const media = mediaRef.current
     if (!media || !content) return
 
-    const updateTime = () => {
+    const handleTimeUpdate = () => {
       const current = media.currentTime
       setCurrentTime(current)
       
@@ -167,16 +166,16 @@ export default function ContentDetailPage() {
         const progress = (current / media.duration) * 100
         setLocalProgress(progress)
         
-        // Validation stricte à 100%
         if (progress >= 100 && !content.isCompleted) {
           updateProgress(current, true)
         }
       }
     }
 
-    const updateDuration = () => {
+    const handleLoadedMetadata = () => {
       if (media.duration && !isNaN(media.duration)) {
         setDuration(media.duration)
+        setMediaReady(true)
         // Reprendre là où l'utilisateur s'était arrêté
         if (content.watchTime > 0 && content.watchTime < media.duration) {
           media.currentTime = content.watchTime
@@ -184,70 +183,102 @@ export default function ContentDetailPage() {
       }
     }
 
-    const handlePlay = () => setIsPlaying(true)
-    const handlePause = () => setIsPlaying(false)
+    const handlePlay = () => {
+      console.log('Média en cours de lecture')
+      setIsPlaying(true)
+    }
+    
+    const handlePause = () => {
+      console.log('Média en pause')
+      setIsPlaying(false)
+    }
     
     const handleError = (e: Event) => {
       console.error('Erreur de lecture média:', e)
       toast.error(`Erreur lors de la lecture ${content.type === 'VIDEO' ? 'de la vidéo' : 'de l\'audio'}`)
+      setMediaReady(false)
     }
 
     const handleLoadStart = () => {
       setLoading(true)
+      setMediaReady(false)
     }
 
     const handleCanPlay = () => {
       setLoading(false)
+      setMediaReady(true)
     }
 
-    media.addEventListener('timeupdate', updateTime)
-    media.addEventListener('loadedmetadata', updateDuration)
+    const handleEnded = () => {
+      setIsPlaying(false)
+      if (!content.isCompleted) {
+        updateProgress(media.duration, true)
+      }
+    }
+
+    // Ajout des événements
+    media.addEventListener('timeupdate', handleTimeUpdate)
+    media.addEventListener('loadedmetadata', handleLoadedMetadata)
     media.addEventListener('play', handlePlay)
     media.addEventListener('pause', handlePause)
+    media.addEventListener('ended', handleEnded)
     media.addEventListener('error', handleError)
     media.addEventListener('loadstart', handleLoadStart)
     media.addEventListener('canplay', handleCanPlay)
 
-    // Mise à jour périodique de la progression
+    return () => {
+      // Nettoyage des événements
+      media.removeEventListener('timeupdate', handleTimeUpdate)
+      media.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      media.removeEventListener('play', handlePlay)
+      media.removeEventListener('pause', handlePause)
+      media.removeEventListener('ended', handleEnded)
+      media.removeEventListener('error', handleError)
+      media.removeEventListener('loadstart', handleLoadStart)
+      media.removeEventListener('canplay', handleCanPlay)
+    }
+  }, [content, updateProgress])
+
+  // Gestion de la mise à jour périodique de la progression
+  useEffect(() => {
     if (progressUpdateInterval.current) {
       clearInterval(progressUpdateInterval.current)
     }
     
-    progressUpdateInterval.current = setInterval(() => {
-      if (isPlaying && media.currentTime > 0) {
-        updateProgress(media.currentTime)
-      }
-    }, 5000) // Toutes les 5 secondes
+    if (isPlaying && mediaRef.current) {
+      progressUpdateInterval.current = setInterval(() => {
+        const media = mediaRef.current
+        if (media && media.currentTime > 0) {
+          updateProgress(media.currentTime)
+        }
+      }, 5000) // Toutes les 5 secondes
+    }
 
     return () => {
-      media.removeEventListener('timeupdate', updateTime)
-      media.removeEventListener('loadedmetadata', updateDuration)
-      media.removeEventListener('play', handlePlay)
-      media.removeEventListener('pause', handlePause)
-      media.removeEventListener('error', handleError)
-      media.removeEventListener('loadstart', handleLoadStart)
-      media.removeEventListener('canplay', handleCanPlay)
-      
       if (progressUpdateInterval.current) {
         clearInterval(progressUpdateInterval.current)
       }
-      
-      // Sauvegarder la progression avant de quitter
-      if (media.currentTime > 0) {
+    }
+  }, [isPlaying, updateProgress])
+
+  // Sauvegarde de la progression avant de quitter
+  useEffect(() => {
+    return () => {
+      const media = mediaRef.current
+      if (media && media.currentTime > 0) {
         updateProgress(media.currentTime)
       }
     }
-  }, [content, isPlaying, updateProgress])
+  }, [updateProgress])
 
   // Redirection automatique vers le QCM après complétion
   const handleRedirectToQuiz = () => {
-   if (content?.chapter?.quiz) {
+    if (content?.chapter?.quiz) {
       setRedirecting(true)
       setTimeout(() => {
         router.push(`/quiz/${content.chapter.id}`)
       }, 2000)
     } else {
-      // Pas de QCM, aller au chapitre suivant
       setRedirecting(true)
       setTimeout(() => {
         router.push('/modules')
@@ -262,26 +293,31 @@ export default function ContentDetailPage() {
     return remainingSeconds > 0 ? `${minutes}:${remainingSeconds.toString().padStart(2, '0')} min` : `${minutes} min`
   }
 
-  const togglePlay = () => {
+  // CORRECTION PRINCIPALE : Fonction togglePlay améliorée
+  const togglePlay = async () => {
     const media = mediaRef.current
-    if (!media) return
+    if (!media || !mediaReady) {
+      console.log('Média pas prêt')
+      return
+    }
 
-    if (isPlaying) {
-      media.pause()
-    } else {
-      const playPromise = media.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.error('Erreur lors de la lecture:', error)
-          toast.error(`Impossible de lire ${content?.type === 'VIDEO' ? 'la vidéo' : 'l\'audio'}`)
-        })
+    try {
+      if (isPlaying) {
+        console.log('Tentative de pause...')
+        media.pause()
+      } else {
+        console.log('Tentative de lecture...')
+        await media.play()
       }
+    } catch (error) {
+      console.error('Erreur lors du contrôle de lecture/pause:', error)
+      toast.error(`Impossible de ${isPlaying ? 'mettre en pause' : 'lire'} ${content?.type === 'VIDEO' ? 'la vidéo' : 'l\'audio'}`)
     }
   }
 
   const handleSeek = (seconds: number) => {
     const media = mediaRef.current
-    if (!media || !media.duration) return
+    if (!media || !media.duration || !mediaReady) return
     
     const newTime = Math.max(0, Math.min(media.duration, media.currentTime + seconds))
     media.currentTime = newTime
@@ -296,7 +332,7 @@ export default function ContentDetailPage() {
 
   const handleProgressClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const media = mediaRef.current
-    if (!media || !media.duration) return
+    if (!media || !media.duration || !mediaReady) return
 
     const rect = event.currentTarget.getBoundingClientRect()
     const clickPosition = (event.clientX - rect.left) / rect.width
@@ -369,10 +405,7 @@ export default function ContentDetailPage() {
                     src={content.url}
                     className="w-full aspect-video"
                     preload="metadata"
-                    onError={(e) => {
-                      console.error('Erreur vidéo:', e)
-                      toast.error('Impossible de charger la vidéo')
-                    }}
+                    controls={false} // Désactiver les contrôles natifs
                   />
                 ) : (
                   <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-purple-900 to-blue-900">
@@ -386,10 +419,6 @@ export default function ContentDetailPage() {
                       src={content.url}
                       preload="metadata"
                       className="hidden"
-                      onError={(e) => {
-                        console.error('Erreur audio:', e)
-                        toast.error('Impossible de charger l\'audio')
-                      }}
                     />
                   </div>
                 )}
@@ -415,7 +444,8 @@ export default function ContentDetailPage() {
                           size="sm"
                           variant="ghost"
                           onClick={togglePlay}
-                          className="text-white hover:bg-white/20"
+                          disabled={!mediaReady}
+                          className="text-white hover:bg-white/20 disabled:opacity-50"
                         >
                           {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                         </Button>
@@ -424,7 +454,8 @@ export default function ContentDetailPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleSeek(-10)}
-                          className="text-white hover:bg-white/20"
+                          disabled={!mediaReady}
+                          className="text-white hover:bg-white/20 disabled:opacity-50"
                         >
                           <SkipBack className="w-4 h-4" />
                         </Button>
@@ -433,7 +464,8 @@ export default function ContentDetailPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleSeek(10)}
-                          className="text-white hover:bg-white/20"
+                          disabled={!mediaReady}
+                          className="text-white hover:bg-white/20 disabled:opacity-50"
                         >
                           <SkipForward className="w-4 h-4" />
                         </Button>
@@ -459,7 +491,8 @@ export default function ContentDetailPage() {
                             size="sm"
                             variant="ghost"
                             onClick={handleFullscreen}
-                            className="text-white hover:bg-white/20"
+                            disabled={!mediaReady}
+                            className="text-white hover:bg-white/20 disabled:opacity-50"
                           >
                             <Maximize className="w-5 h-5" />
                           </Button>
@@ -468,6 +501,13 @@ export default function ContentDetailPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Indicateur de chargement */}
+                {loading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                  </div>
+                )}
               </div>
             </Card>
 
