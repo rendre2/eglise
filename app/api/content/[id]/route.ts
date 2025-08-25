@@ -38,6 +38,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
                 title: true,
                 order: true
               }
+            },
+            quiz: {
+              select: {
+                id: true,
+                title: true,
+                passingScore: true
+              }
             }
           }
         }
@@ -95,6 +102,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       })
     }
 
+    // Vérifier si tous les contenus du chapitre sont terminés pour le QCM
+    const allChapterContentsCompleted = await prisma.contentProgress.count({
+      where: {
+        userId: session.user.id,
+        content: {
+          chapterId: content.chapterId
+        },
+        isCompleted: true
+      }
+    })
+
+    const totalChapterContents = await prisma.content.count({
+      where: {
+        chapterId: content.chapterId,
+        isActive: true
+      }
+    })
+
     const progressPercentage = progress && content.duration > 0 
       ? Math.min(100, Math.round((progress.watchTime / content.duration) * 100))
       : 0
@@ -104,6 +129,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       progress: progressPercentage,
       isCompleted: progress?.isCompleted || false,
       watchTime: progress?.watchTime || 0,
+      chapter: {
+        ...content.chapter,
+        allContentsCompleted: allChapterContentsCompleted === totalChapterContents
+      },
       navigation: {
         previous: previousContent ? {
           id: previousContent.id,

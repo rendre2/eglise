@@ -48,6 +48,7 @@ interface Content {
     title: string
     description: string
     order: number
+    allContentsCompleted?: boolean
     moduleInfo: {
       id: string
       title: string
@@ -572,9 +573,9 @@ export default function ContentDetailPage() {
                   <Separator />
 
                   {/* Accès au quiz */}
-                 {content.chapter?.quiz? (
+                  {content.chapter.quiz ? (
                     <>
-                      {content.isCompleted ? (
+                      {content.chapter.allContentsCompleted ? (
                         <Link href={`/quiz/${content.chapter.id}`}>
                           <Button className="w-full bg-green-500 hover:bg-green-600">
                             <BookOpen className="w-4 h-4 mr-2" />
@@ -584,7 +585,7 @@ export default function ContentDetailPage() {
                       ) : (
                         <Button disabled className="w-full bg-gray-400">
                           <Lock className="w-4 h-4 mr-2" />
-                          QCM disponible après 100% du contenu
+                          QCM disponible après 100% de tous les contenus
                         </Button>
                       )}
                     </>

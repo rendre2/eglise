@@ -51,7 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Aucun quiz disponible pour ce chapitre' }, { status: 404 })
     }
 
-    // Vérifier que l'utilisateur a terminé TOUS les contenus du chapitre à 100%
+    // Vérifier que l'utilisateur a terminé TOUS les contenus du chapitre
     if (chapter.contents.length === 0) {
       return NextResponse.json({ error: 'Aucun contenu disponible dans ce chapitre' }, { status: 404 })
     }
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     if (completedContents.length < chapter.contents.length) {
       return NextResponse.json({ 
-        error: 'Vous devez d\'abord terminer tous les contenus du chapitre à 100% pour accéder au QCM',
+        error: 'Vous devez d\'abord terminer tous les contenus du chapitre pour accéder au QCM',
         details: `${chapter.contents.length - completedContents.length} contenu(s) restant(s) à terminer`
       }, { status: 403 })
     }
