@@ -17,7 +17,7 @@ import {
 import { toast } from 'sonner'
 
 interface ContentPlayerProps {
-  content: {
+  content: { 
     id: string
     title: string
     type: 'VIDEO' | 'AUDIO'
