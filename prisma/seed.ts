@@ -257,14 +257,14 @@ async function createChapters(modules: any[]) {
 async function createContents(chapters: any[]) {
   const contentsData = [];
   const videoUrls = [
-    'https://eveil-chretien.com/video/Les_5_types_d_enseignement.mp4',
-    'https://eveil-chretien.com/video/Les_5_types_d_enseignement.mp4',
-    'https://eveil-chretien.com/video/Les_5_types_d_enseignement.mp4'
+    'video/Les_5_types_d_enseignement.mp4',
+    'video/Les_5_types_d_enseignement.mp4',
+    'video/Les_5_types_d_enseignement.mp4'
   ];
   
   const audioUrls = [
-    'https://eveil-chretien.com/audio/Comment-transformer-un-souhait-une-envie-en-prophetie.mp3',
-    'https://eveil-chretien.com/audio/Cet-arme-que-le-diable-contre-toi.mp3'
+    'audio/Comment-transformer-un-souhait-une-envie-en-prophetie.mp3',
+    'audio/Cet-arme-que-le-diable-contre-toi.mp3'
   ];
 
   // Créer un contenu pour chaque chapitre
