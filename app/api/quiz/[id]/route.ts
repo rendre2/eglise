@@ -124,9 +124,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Parser les questions JSON
     let parsedQuestions
     try {
-      parsedQuestions = typeof quiz.questions === 'string' 
-        ? JSON.parse(quiz.questions) 
-        : quiz.questions
+      // S'assurer que les questions sont correctement parsées
+      if (typeof quiz.questions === 'string') {
+        parsedQuestions = JSON.parse(quiz.questions)
+      } else if (typeof quiz.questions === 'object') {
+        // Si c'est déjà un objet, on l'utilise directement
+        parsedQuestions = quiz.questions
+      } else {
+        throw new Error('Format de questions non reconnu')
+      }
+      
+      // Log pour debug
+      console.log('Questions parsées:', JSON.stringify(parsedQuestions).substring(0, 200))
     } catch (error) {
       console.error('Erreur lors du parsing des questions:', error)
       return NextResponse.json({ error: 'Format de questions invalide' }, { status: 500 })

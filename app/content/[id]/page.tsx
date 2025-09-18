@@ -463,7 +463,7 @@ export default function ContentDetailPage() {
                 {content.type === 'VIDEO' ? (
                   <video
                     ref={mediaRef as React.RefObject<HTMLVideoElement>}
-                    src={content.url}
+                    src={`/api/media/proxy?url=${encodeURIComponent(content.url)}`}
                     className="w-full aspect-video"
                     preload="metadata"
                     controls={false}
@@ -483,7 +483,7 @@ export default function ContentDetailPage() {
                     </div>
                     <audio
                       ref={mediaRef as React.RefObject<HTMLAudioElement>}
-                      src={content.url}
+                      src={`/api/media/proxy?url=${encodeURIComponent(content.url)}`}
                       preload="metadata"
                       className="hidden"
                       controls={false}

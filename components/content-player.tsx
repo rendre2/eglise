@@ -209,7 +209,7 @@ export function ContentPlayer({ content, onProgressUpdate, onCompletion }: Conte
         {content.type === 'VIDEO' ? (
           <video
             ref={mediaRef as React.RefObject<HTMLVideoElement>}
-            src={content.url}
+            src={content.url.startsWith('http') ? `/api/media/proxy?url=${encodeURIComponent(content.url)}` : content.url}
             className="w-full aspect-video"
             preload="metadata"
             onError={(e) => {
@@ -226,7 +226,7 @@ export function ContentPlayer({ content, onProgressUpdate, onCompletion }: Conte
             </div>
             <audio
               ref={mediaRef as React.RefObject<HTMLAudioElement>}
-              src={content.url}
+              src={content.url.startsWith('http') ? `/api/media/proxy?url=${encodeURIComponent(content.url)}` : content.url}
               preload="metadata"
               className="hidden"
               onError={(e) => {

@@ -68,8 +68,8 @@ export async function POST(
     // Limiter le temps de visionnage à la durée du contenu
     const clampedWatchTime = Math.min(watchTime, content.duration)
     
-    // Un contenu est complété uniquement à 100% exactement
-    const isCompleted = body.isCompleted && clampedWatchTime >= content.duration
+    // Un contenu est complété à 95% ou plus (harmonisation frontend/backend)
+    const isCompleted = body.isCompleted || (clampedWatchTime >= content.duration * 0.95)
 
     // Utiliser une transaction pour garantir l'atomicité des opérations
     const contentProgress = await prisma.$transaction(async (tx) => {
@@ -141,6 +141,60 @@ export async function POST(
               completedAt: new Date()
             }
           });
+          
+          // Vérifier et mettre à jour la progression du module
+          const chapter = await tx.chapter.findUnique({
+            where: { id: content.chapterId },
+            select: { moduleId: true }
+          });
+          
+          if (chapter) {
+            // Récupérer tous les chapitres du module
+            const moduleChapters = await tx.chapter.findMany({
+              where: { 
+                moduleId: chapter.moduleId,
+                isActive: true 
+              },
+              select: { id: true }
+            });
+            
+            // Vérifier si tous les chapitres sont complétés
+            const chapterProgressList = await tx.chapterProgress.findMany({
+              where: {
+                userId: session.user.id,
+                chapterId: { in: moduleChapters.map(c => c.id) }
+              }
+            });
+            
+            const allChaptersCompleted = moduleChapters.length > 0 && 
+              moduleChapters.every(chapter => 
+                chapterProgressList.some(progress => 
+                  progress.chapterId === chapter.id && progress.isCompleted
+                )
+              );
+            
+            if (allChaptersCompleted) {
+              // Mettre à jour la progression du module
+              await tx.moduleProgress.upsert({
+                where: {
+                  userId_moduleId: {
+                    userId: session.user.id,
+                    moduleId: chapter.moduleId
+                  }
+                },
+                update: {
+                  isCompleted: true,
+                  completedAt: new Date()
+                },
+                create: {
+                  userId: session.user.id,
+                  moduleId: chapter.moduleId,
+                  isCompleted: true,
+                  completedAt: new Date()
+                }
+              });
+            }
+          }
         }
       }
       

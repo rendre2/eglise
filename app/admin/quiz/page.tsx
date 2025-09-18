@@ -289,17 +289,56 @@ export default function AdminQuizPage() {
 
   const handleEdit = (quiz: Quiz) => {
     setEditingQuiz(quiz)
-    setFormData({
-      chapterId: quiz.chapterId,
-      title: quiz.title,
-      passingScore: quiz.passingScore,
-      questions: quiz.questions.map(q => ({ 
-        ...q,
-        options: [...(q.options ?? [])], 
+    
+    // S'assurer que les questions sont correctement parsées
+    let parsedQuestions;
+    try {
+      if (typeof quiz.questions === 'string') {
+        parsedQuestions = JSON.parse(quiz.questions);
+      } else {
+        parsedQuestions = quiz.questions;
+      }
+      
+      // Log pour debug
+      console.log('Questions à éditer:', JSON.stringify(parsedQuestions).substring(0, 200));
+      
+      // S'assurer que chaque question a les propriétés requises
+      const formattedQuestions = parsedQuestions.map((q: any) => ({
+        id: q.id || `q${Math.random().toString(36).substring(2, 9)}`,
+        question: q.question || '',
+        type: q.type || 'multiple_choice',
+        options: q.type === 'multiple_choice' ? [...(q.options || ['', '', '', ''])] : undefined,
+        correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : (q.type === 'multiple_choice' ? 0 : true),
         explanation: q.explanation || ''
-      }))
-    })
-    setIsDialogOpen(true)
+      }));
+      
+      setFormData({
+        chapterId: quiz.chapterId,
+        title: quiz.title,
+        passingScore: quiz.passingScore,
+        questions: formattedQuestions
+      });
+      
+    } catch (error) {
+      console.error('Erreur lors du parsing des questions:', error);
+      toast.error('Erreur lors du chargement des questions du quiz');
+      
+      // Fallback avec une question vide
+      setFormData({
+        chapterId: quiz.chapterId,
+        title: quiz.title,
+        passingScore: quiz.passingScore,
+        questions: [{
+          question: '',
+          type: 'multiple_choice' as 'multiple_choice' | 'true_false',
+          options: ['', '', '', ''],
+          correctAnswer: 0,
+          explanation: ''
+        }]
+      });
+    }
+    
+    setIsDialogOpen(true);
   }
 
   const handleDeleteClick = (quiz: Quiz) => {
