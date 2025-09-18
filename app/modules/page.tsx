@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { DailyVerse } from '@/components/daily-verse'
 import { CertificatesSection } from '@/components/certificates-section'
+import { ModuleClient } from '@/lib/client-services'
 
 interface Content {
   id: string
@@ -89,16 +90,11 @@ export default function ModulesPage() {
 
   const fetchModules = async () => {
     try {
-      const response = await fetch('/api/modules')
-      if (!response.ok) {
-        const errorData: ApiResponse = await response.json()
-        if (errorData.emailNotVerified) {
-          toast.error('Veuillez vérifier votre email avant d\'accéder aux modules')
-          return
-        }
-        throw new Error(errorData.message || errorData.error || 'Erreur lors de la récupération des modules')
-      }
-      const data: ApiResponse = await response.json()
+      setLoading(true)
+      
+      // Utiliser le service client pour récupérer les modules
+      const data = await ModuleClient.getModules()
+      
       if (data.success) {
         setModules(data.modules || [])
         setUserStats(data.userStats || null)

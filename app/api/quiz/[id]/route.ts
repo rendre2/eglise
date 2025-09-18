@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { safeJsonParse } from '@/lib/json-utils'
+import { QuizQuestion } from '@/types/quiz'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,24 +123,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       }, { status: 200 })
     }
 
-    // Parser les questions JSON
-    let parsedQuestions
-    try {
-      // S'assurer que les questions sont correctement parsées
-      if (typeof quiz.questions === 'string') {
-        parsedQuestions = JSON.parse(quiz.questions)
-      } else if (typeof quiz.questions === 'object') {
-        // Si c'est déjà un objet, on l'utilise directement
-        parsedQuestions = quiz.questions
-      } else {
-        throw new Error('Format de questions non reconnu')
-      }
-      
-      // Log pour debug
-      console.log('Questions parsées:', JSON.stringify(parsedQuestions).substring(0, 200))
-    } catch (error) {
-      console.error('Erreur lors du parsing des questions:', error)
-      return NextResponse.json({ error: 'Format de questions invalide' }, { status: 500 })
+    // Parser les questions avec gestion d'erreur améliorée
+    const parsedQuestions = safeJsonParse<QuizQuestion[]>(quiz.questions, [])
+    
+    // Log pour debug (limité pour éviter les logs trop volumineux)
+    if (parsedQuestions.length > 0) {
+      console.log(`Questions parsées: ${parsedQuestions.length} questions trouvées`)
+    } else {
+      console.error('Aucune question trouvée dans le quiz')
+      return NextResponse.json({ error: 'Aucune question disponible pour ce quiz' }, { status: 404 })
     }
 
     if (!Array.isArray(parsedQuestions) || parsedQuestions.length === 0) {

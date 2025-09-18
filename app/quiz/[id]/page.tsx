@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import { quizReducer, initialQuizState } from './quizReducer'
 import { Quiz, QuizSubmitResponse, QuizResult, ReviewQuestion, AlreadyCompletedResponse } from './types'
+import { QuizService } from '@/lib/client-services'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { QuestionView } from './components/QuestionView'
@@ -61,40 +62,34 @@ export default function QuizPage() {
     }
   }, [session, status, router])
 
-  // Charger les données du quiz
+  // Charger les données du quiz en utilisant le service client
   useEffect(() => {
     if (session && params.id) {
       const fetchQuiz = async () => {
         try {
           setLoading(true)
-          const response = await fetch(`/api/quiz/${params.id}`)
           
-          if (response.ok) {
-            const data = await response.json()
+          // Utiliser le service client pour récupérer le quiz
+          const data = await QuizService.getQuiz(params.id)
+          
+          // Cas spécial : quiz déjà complété (avec alreadyCompleted)
+          if ('alreadyCompleted' in data) {
+            const completedData = data as AlreadyCompletedResponse
+            setAlreadyCompleted(completedData.result)
             
-            // Cas spécial : quiz déjà complété (status 200 avec alreadyCompleted)
-            if (data.alreadyCompleted) {
-              const completedData = data as AlreadyCompletedResponse
-              setAlreadyCompleted(completedData.result)
-              
-              // Stocker les questions pour le mode révision si disponibles
-              if (data.reviewMode && data.questions) {
-                setReviewQuestions(data.questions)
-              }
-              
-              toast.info('Vous avez déjà complété ce quiz avec succès')
-              return
+            // Stocker les questions pour le mode révision si disponibles
+            if (completedData.reviewMode && completedData.questions) {
+              setReviewQuestions(completedData.questions)
             }
             
-            // Quiz normal
-            const quizData: Quiz = data
-            setQuiz(quizData)
-            setTimeLeft(quizData.timeLimit * 60)
-            
-          } else {
-            const errorData = await response.json()
-            throw new Error(errorData.error || errorData.message || 'Erreur lors de la récupération du quiz')
+            toast.info('Vous avez déjà complété ce quiz avec succès')
+            return
           }
+          
+          // Quiz normal
+          const quizData = data as Quiz
+          setQuiz(quizData)
+          setTimeLeft(quizData.timeLimit * 60)
           
         } catch (error: any) {
           console.error('Erreur lors du chargement du quiz:', error)
@@ -108,25 +103,15 @@ export default function QuizPage() {
     }
   }, [session, params.id, router])
 
-  // Fonction pour soumettre le quiz
+  // Fonction pour soumettre le quiz en utilisant le service client
   const handleSubmitQuiz = useCallback(async () => {
     if (!quiz || isSubmitting) return
 
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`/api/quiz/${quiz.id}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Erreur lors de l\'enregistrement')
-      }
-      
-      const result: QuizSubmitResponse = await response.json()
+      // Utiliser le service client pour soumettre le quiz
+      const result = await QuizService.submitQuiz(quiz.id, answers)
       
       if (result.success) {
         setQuizResult(result)

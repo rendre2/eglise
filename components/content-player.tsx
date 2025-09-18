@@ -15,6 +15,7 @@ import {
   Headphones,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ContentProgressClient } from '@/lib/client-services'
 
 interface ContentPlayerProps {
   content: { 
@@ -41,12 +42,16 @@ export function ContentPlayer({ content, onProgressUpdate, onCompletion }: Conte
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null)
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
 
-  // Fonction pour mettre à jour la progression
+  // Fonction pour mettre à jour la progression en utilisant le service client
   const updateProgress = useCallback(async (watchTime: number, completed: boolean = false) => {
     if (updateInProgress || !content) return
     
     setUpdateInProgress(true)
     try {
+      // Utiliser le service client pour mettre à jour la progression
+      await ContentProgressClient.updateProgress(content.id, Math.floor(watchTime), content.duration)
+      
+      // Appeler également le callback du parent pour la compatibilité
       await onProgressUpdate(Math.floor(watchTime), completed)
       
       // Marquer le contenu comme complété localement
@@ -55,6 +60,7 @@ export function ContentPlayer({ content, onProgressUpdate, onCompletion }: Conte
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la progression:', error)
+      toast.error('Impossible de mettre à jour la progression')
     } finally {
       setUpdateInProgress(false)
     }
