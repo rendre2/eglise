@@ -162,11 +162,11 @@ export function FeaturedModules() {
                   </div>
 
                   {/* Barre de progression pour les utilisateurs connectés */}
-                  {session && module.progress !== undefined && module.progress > 0 && (
+                  {session && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-20">
                       <div 
                         className="h-full bg-orange-500 transition-all duration-300"
-                        style={{ width: `${module.progress}%` }}
+                        style={{ width: `${typeof module.progress === 'number' ? module.progress : 0}%` }}
                       />
                     </div>
                   )}
@@ -211,16 +211,16 @@ export function FeaturedModules() {
                   )}
                   
                   {/* Affichage de la progression */}
-                  {session && module.progress !== undefined && module.progress > 0 && !module.isCompleted && (
+                  {session && (
                     <div className="mb-4">
                       <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
                         <span>Progression</span>
-                        <span>{module.progress}%</span>
+                        <span>{typeof module.progress === 'number' ? Math.round(module.progress) : 0}%</span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
                           className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${module.progress}%` }}
+                          style={{ width: `${typeof module.progress === 'number' ? module.progress : 0}%` }}
                         />
                       </div>
                     </div>

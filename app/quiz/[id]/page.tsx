@@ -65,16 +65,17 @@ export default function QuizPage() {
   // Charger les données du quiz en utilisant le service client
   useEffect(() => {
     if (session && params.id) {
+      const chapterId = Array.isArray(params.id) ? params.id[0] : params.id;
       const fetchQuiz = async () => {
         try {
           setLoading(true)
           
           // Utiliser le service client pour récupérer le quiz
-          const data = await QuizService.getQuiz(params.id)
+          const data = await QuizService.getQuiz(chapterId)
           
           // Cas spécial : quiz déjà complété (avec alreadyCompleted)
           if ('alreadyCompleted' in data) {
-            const completedData = data as AlreadyCompletedResponse
+            const completedData = data as unknown as AlreadyCompletedResponse
             setAlreadyCompleted(completedData.result)
             
             // Stocker les questions pour le mode révision si disponibles
@@ -439,7 +440,8 @@ export default function QuizPage() {
                 {/* Questions à choix multiples */}
                 {quiz.questions[currentQuestion].type === 'multiple_choice' ? (
                   <RadioGroup
-                    value={answers[quiz.questions[currentQuestion].id]?.toString()}
+                    value={typeof answers[quiz.questions[currentQuestion].id] === 'number' ? 
+                      answers[quiz.questions[currentQuestion].id].toString() : undefined}
                     onValueChange={(value) => 
                       handleAnswerChange(quiz.questions[currentQuestion].id, parseInt(value))
                     }
@@ -456,7 +458,8 @@ export default function QuizPage() {
                 ) : (
                   /* Questions Vrai/Faux */
                   <RadioGroup
-                    value={answers[quiz.questions[currentQuestion].id]?.toString()}
+                    value={typeof answers[quiz.questions[currentQuestion].id] === 'boolean' ? 
+                      answers[quiz.questions[currentQuestion].id].toString() : undefined}
                     onValueChange={(value) => 
                       handleAnswerChange(quiz.questions[currentQuestion].id, value === 'true')
                     }
