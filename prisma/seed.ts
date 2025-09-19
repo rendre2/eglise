@@ -257,14 +257,14 @@ async function createChapters(modules: any[]) {
 async function createContents(chapters: any[]) {
   const contentsData = [];
   const videoUrls = [
-    'https://eveil-chretien.com/video/Les_5_types_d_enseignement.mp4',
-    'https://eveil-chretien.com/video/Les_5_types_d_enseignement.mp4',
-    'https://eveil-chretien.com/update/video/Les_5_types_d_enseignement.mp4'
+    'https://eveil-chretien.com/eglise/public/uploads/video/Les_5_types_d_enseignement.mp4',
+    'https://eveil-chretien.com/eglise/public/uploads/video/Les_5_types_d_enseignement.mp4',
+    'https://eveil-chretien.com/eglise/public/uploads/video/Les_5_types_d_enseignement.mp4'
   ];
   
   const audioUrls = [
     'https://eveil-chretien.com/eglise/public/uploads/audio/Comment-transformer-un-souhait-une-envie-en-prophetie.mp3',
-    'https://eveil-chretien.com/audio/Cet-arme-que-le-diable-contre-toi.mp3'
+    'https://eveil-chretien.com/eglise/public/uploads/audio/Cet-arme-que-le-diable-contre-toi.mp3'
   ];
 
   // Créer un contenu pour chaque chapitre
@@ -299,72 +299,59 @@ async function createQuizzes(chapters: any[]) {
 
   for (const chapter of chapters) {
     // Créer un quiz pour chaque chapitre
+    const questions = [];
+    
+    // Ajouter 3 questions à choix multiples
+    questions.push(
+      {
+        id: 'q1',
+        question: `Question 1 sur ${chapter.title}`,
+        type: 'multiple_choice',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctAnswer: 0, // Index de la bonne réponse (Option A)
+        explanation: 'Explication de la réponse correcte'
+      },
+      {
+        id: 'q2',
+        question: `Question 2 sur ${chapter.title}`,
+        type: 'multiple_choice',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctAnswer: 1, // Index de la bonne réponse (Option B)
+        explanation: 'Explication de la réponse correcte'
+      },
+      {
+        id: 'q3',
+        question: `Question 3 sur ${chapter.title}`,
+        type: 'multiple_choice',
+        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctAnswer: 2, // Index de la bonne réponse (Option C)
+        explanation: 'Explication de la réponse correcte'
+      }
+    );
+    
+    // Ajouter 2 questions vrai/faux
+    questions.push(
+      {
+        id: 'q4',
+        question: `Vrai ou Faux: Cette affirmation sur ${chapter.title} est vraie.`,
+        type: 'true_false',
+        correctAnswer: true, // La réponse est Vrai
+        explanation: 'Explication de la réponse correcte'
+      },
+      {
+        id: 'q5',
+        question: `Vrai ou Faux: Cette affirmation sur ${chapter.title} est fausse.`,
+        type: 'true_false',
+        correctAnswer: false, // La réponse est Faux
+        explanation: 'Explication de la réponse correcte'
+      }
+    );
+    
     quizzesData.push({
       chapterId: chapter.id,
       title: `Quiz - ${chapter.title}`,
       passingScore: 70, // Score de passage par défaut
-      questions: JSON.stringify([
-        {
-          id: '1',
-          question: `Question 1 sur ${chapter.title}`,
-          options: [
-            { id: 'a', text: 'Option A' },
-            { id: 'b', text: 'Option B' },
-            { id: 'c', text: 'Option C' },
-            { id: 'd', text: 'Option D' }
-          ],
-          correctAnswer: 'a',
-          explanation: 'Explication de la réponse correcte'
-        },
-        {
-          id: '2',
-          question: `Question 2 sur ${chapter.title}`,
-          options: [
-            { id: 'a', text: 'Option A' },
-            { id: 'b', text: 'Option B' },
-            { id: 'c', text: 'Option C' },
-            { id: 'd', text: 'Option D' }
-          ],
-          correctAnswer: 'b',
-          explanation: 'Explication de la réponse correcte'
-        },
-        {
-          id: '3',
-          question: `Question 3 sur ${chapter.title}`,
-          options: [
-            { id: 'a', text: 'Option A' },
-            { id: 'b', text: 'Option B' },
-            { id: 'c', text: 'Option C' },
-            { id: 'd', text: 'Option D' }
-          ],
-          correctAnswer: 'c',
-          explanation: 'Explication de la réponse correcte'
-        },
-        {
-          id: '4',
-          question: `Question 4 sur ${chapter.title}`,
-          options: [
-            { id: 'a', text: 'Option A' },
-            { id: 'b', text: 'Option B' },
-            { id: 'c', text: 'Option C' },
-            { id: 'd', text: 'Option D' }
-          ],
-          correctAnswer: 'd',
-          explanation: 'Explication de la réponse correcte'
-        },
-        {
-          id: '5',
-          question: `Question 5 sur ${chapter.title}`,
-          options: [
-            { id: 'a', text: 'Option A' },
-            { id: 'b', text: 'Option B' },
-            { id: 'c', text: 'Option C' },
-            { id: 'd', text: 'Option D' }
-          ],
-          correctAnswer: 'a',
-          explanation: 'Explication de la réponse correcte'
-        }
-      ])
+      questions: JSON.stringify(questions)
     });
   }
 

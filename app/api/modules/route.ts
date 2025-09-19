@@ -8,17 +8,28 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     
+    // Si l'utilisateur n'est pas connecté, retourner des modules vides
+    if (!session?.user?.id) {
+      // Récupérer uniquement les modules publics sans progression
+      const { modules } = await moduleService.getModulesWithProgress(undefined)
+      return NextResponse.json({ 
+        modules,
+        success: true
+      })
+    }
+    
     // Utiliser le service centralisé pour récupérer les modules avec progression
     const { modules, userStats } = await moduleService.getModulesWithProgress(
-      session?.user?.id
+      session.user.id
     )
 
     // Vérifier si l'email n'est pas vérifié (géré par le service)
-    if (session?.user?.id && !userStats) {
+    if (!userStats) {
       return NextResponse.json({
         error: 'Email non vérifié',
         message: 'Veuillez vérifier votre email avant d\'accéder aux modules',
         emailNotVerified: true,
+        modules, // Retourner quand même les modules pour l'affichage
         success: false
       }, { status: 403 })
     }

@@ -2,17 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { safeJsonParse, validateJsonObject } from '@/lib/json-utils'
+import { QuizQuestion } from '@/types/quiz'
 
 export const dynamic = 'force-dynamic'
 
-interface Question {
-  id?: string
-  question: string
-  type: 'multiple_choice' | 'true_false'
-  options: string[]
-  correctAnswer: number
-  explanation?: string
-}
+// Utiliser le type QuizQuestion importé depuis @/types/quiz
 
 export async function GET() {
   try {
@@ -52,11 +47,14 @@ export async function GET() {
       }
     })
 
-    // Le champ questions est déjà JSON dans le schéma, pas besoin de parser
-    const formattedQuizzes = quizzes.map(quiz => ({
-      ...quiz,
-      questions: quiz.questions as unknown as Question[] // Cast via unknown pour satisfaire TypeScript
-    }))
+    // Utiliser safeJsonParse pour parser les questions de manière sécurisée
+    const formattedQuizzes = quizzes.map(quiz => {
+      const parsedQuestions = safeJsonParse<QuizQuestion[]>(quiz.questions, [])
+      return {
+        ...quiz,
+        questions: parsedQuestions
+      }
+    })
 
     return NextResponse.json({ 
       quizzes: formattedQuizzes,
@@ -111,9 +109,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validation des questions
+    // Validation améliorée des questions
     for (let i = 0; i < questions.length; i++) {
-      const question = questions[i] as Question
+      const question = questions[i] as QuizQuestion
+      
+      // Valider que la question a tous les champs requis
+      const isValidQuestion = validateJsonObject<QuizQuestion>(question, ['question', 'type'])
+      if (!isValidQuestion) {
+        return NextResponse.json(
+          { error: `La question ${i + 1} est mal formée ou incomplète` },
+          { status: 400 }
+        )
+      }
       
       if (!question.question?.trim()) {
         return NextResponse.json(
@@ -123,7 +130,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (question.type === 'multiple_choice') {
-        if (!question.options || question.options.length !== 4) {
+        if (!Array.isArray(question.options) || question.options.length !== 4) {
           return NextResponse.json(
             { error: `La question ${i + 1} doit avoir exactement 4 options` },
             { status: 400 }
@@ -153,6 +160,11 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           )
         }
+      } else {
+        return NextResponse.json(
+          { error: `Le type de question ${i + 1} doit être 'multiple_choice' ou 'true_false'` },
+          { status: 400 }
+        )
       }
     }
 
@@ -181,15 +193,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Nettoyer et structurer les questions
-    const cleanQuestions = questions.map((q: Question, index: number) => ({
-      id: `q${index + 1}`,
-      question: q.question.trim(),
-      type: q.type,
-      options: q.type === 'multiple_choice' ? q.options?.map(opt => opt.trim()) : undefined,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation?.trim() || ''
-    }))
+    // Nettoyer et structurer les questions avec une meilleure gestion des erreurs
+    const cleanQuestions = questions.map((q: QuizQuestion, index: number) => {
+      try {
+        return {
+          id: q.id || `q${index + 1}`,
+          question: q.question.trim(),
+          type: q.type,
+          options: q.type === 'multiple_choice' ? q.options?.map(opt => opt?.trim() || '') : undefined,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation?.trim() || ''
+        }
+      } catch (error) {
+        console.error(`Erreur lors du nettoyage de la question ${index + 1}:`, error)
+        throw new Error(`La question ${index + 1} contient des données invalides`)
+      }
+    })
 
     // Créer le quiz - pas besoin de JSON.stringify, Prisma gère automatiquement
     const quiz = await prisma.quiz.create({

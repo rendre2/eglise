@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { progressService } from '@/lib/progress-service'
+
 export const dynamic = 'force-dynamic'
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -65,157 +68,34 @@ export async function POST(
       )
     }
 
-    // Limiter le temps de visionnage à la durée du contenu
-    const clampedWatchTime = Math.min(watchTime, content.duration)
-    
-    // Un contenu est complété à 95% ou plus (harmonisation frontend/backend)
-    const isCompleted = body.isCompleted || (clampedWatchTime >= content.duration * 0.95)
+    // Utiliser le service de progression pour mettre à jour la progression
+    try {
+      const contentProgress = await progressService.updateContentProgress(
+        session.user.id,
+        params.id,
+        watchTime,
+        content.duration
+      )
 
-    // Utiliser une transaction pour garantir l'atomicité des opérations
-    const contentProgress = await prisma.$transaction(async (tx) => {
-      // Créer ou mettre à jour la progression du contenu
-      const progress = await tx.contentProgress.upsert({
-        where: {
-          userId_contentId: {
-            userId: session.user.id,
-            contentId: params.id
-          }
+      // Calculer le pourcentage de progression
+      const progressPercentage = Math.min(100, Math.round((contentProgress.watchTime / content.duration) * 100))
+      const isCompleted = contentProgress.isCompleted
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          watchTime: contentProgress.watchTime,
+          isCompleted: contentProgress.isCompleted,
+          completedAt: contentProgress.completedAt,
+          progress: progressPercentage,
+          contentId: params.id
         },
-        update: {
-          watchTime: clampedWatchTime,
-          isCompleted,
-          completedAt: isCompleted ? new Date() : null,
-          updatedAt: new Date()
-        },
-        create: {
-          userId: session.user.id,
-          contentId: params.id,
-          watchTime: clampedWatchTime,
-          isCompleted,
-          completedAt: isCompleted ? new Date() : null
-        }
-      });
-      
-      // Si le contenu est marqué comme complété, vérifier si tous les contenus du chapitre sont complétés
-      if (isCompleted) {
-        // Vérifier et mettre à jour la progression du chapitre
-        const chapterContents = await tx.content.findMany({
-          where: { 
-            chapterId: content.chapterId,
-            isActive: true 
-          },
-          select: { id: true }
-        });
-
-        const contentProgressList = await tx.contentProgress.findMany({
-          where: {
-            userId: session.user.id,
-            contentId: { in: chapterContents.map(c => c.id) }
-          }
-        });
-
-        const allContentsCompleted = chapterContents.length > 0 && 
-          chapterContents.every(content => 
-            contentProgressList.some(progress => 
-              progress.contentId === content.id && progress.isCompleted
-            )
-          );
-
-        if (allContentsCompleted) {
-          // Mettre à jour la progression du chapitre
-          await tx.chapterProgress.upsert({
-            where: {
-              userId_chapterId: {
-                userId: session.user.id,
-                chapterId: content.chapterId
-              }
-            },
-            update: {
-              isCompleted: true,
-              completedAt: new Date()
-            },
-            create: {
-              userId: session.user.id,
-              chapterId: content.chapterId,
-              isCompleted: true,
-              completedAt: new Date()
-            }
-          });
-          
-          // Vérifier et mettre à jour la progression du module
-          const chapter = await tx.chapter.findUnique({
-            where: { id: content.chapterId },
-            select: { moduleId: true }
-          });
-          
-          if (chapter) {
-            // Récupérer tous les chapitres du module
-            const moduleChapters = await tx.chapter.findMany({
-              where: { 
-                moduleId: chapter.moduleId,
-                isActive: true 
-              },
-              select: { id: true }
-            });
-            
-            // Vérifier si tous les chapitres sont complétés
-            const chapterProgressList = await tx.chapterProgress.findMany({
-              where: {
-                userId: session.user.id,
-                chapterId: { in: moduleChapters.map(c => c.id) }
-              }
-            });
-            
-            const allChaptersCompleted = moduleChapters.length > 0 && 
-              moduleChapters.every(chapter => 
-                chapterProgressList.some(progress => 
-                  progress.chapterId === chapter.id && progress.isCompleted
-                )
-              );
-            
-            if (allChaptersCompleted) {
-              // Mettre à jour la progression du module
-              await tx.moduleProgress.upsert({
-                where: {
-                  userId_moduleId: {
-                    userId: session.user.id,
-                    moduleId: chapter.moduleId
-                  }
-                },
-                update: {
-                  isCompleted: true,
-                  completedAt: new Date()
-                },
-                create: {
-                  userId: session.user.id,
-                  moduleId: chapter.moduleId,
-                  isCompleted: true,
-                  completedAt: new Date()
-                }
-              });
-            }
-          }
-        }
-      }
-      
-      return progress;
-    })
-
-    // Note: La validation du chapitre se fera après réussite du QCM
-
-    const progressPercentage = Math.min(100, Math.round((clampedWatchTime / content.duration) * 100))
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        watchTime: contentProgress.watchTime,
-        isCompleted: contentProgress.isCompleted,
-        completedAt: contentProgress.completedAt,
-        progress: progressPercentage,
-        contentId: params.id
-      },
-      message: isCompleted ? 'Contenu terminé à 100% ! Accès au QCM débloqué.' : 'Progression mise à jour'
-    })
+        message: isCompleted ? 'Contenu terminé ! Accès au QCM débloqué.' : 'Progression mise à jour'
+      })
+    } catch (serviceError) {
+      console.error('Erreur du service de progression:', serviceError)
+      throw serviceError // Relancer l'erreur pour la gestion globale
+    }
 
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la progression:', error)

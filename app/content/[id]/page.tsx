@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ContentProgressClient } from '@/lib/client-services'
 import { 
   Play, 
   Pause, 
@@ -91,35 +92,35 @@ export default function ContentDetailPage() {
     }
   }, [session, status, router])
 
-  // Fonction pour mettre à jour la progression
+  // Fonction pour mettre à jour la progression en utilisant le service client
   const updateProgress = useCallback(async (watchTime: number, forceComplete: boolean = false) => {
     if (updateInProgress || !content || !params.id) return
     
     setUpdateInProgress(true)
     try {
-      // Un contenu est complété UNIQUEMENT à 100% ET seulement la première fois
-      const isCompleted = !content.isCompleted && (forceComplete || (watchTime >= content.duration))
+      // Un contenu est complété à 95% ou plus (harmonisation frontend/backend)
+      // Le service gère automatiquement le seuil de complétion à 95%
       
-      const response = await fetch(`/api/content-progress/${params.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          watchTime: Math.floor(watchTime), 
-          isCompleted 
-        })
-      })
+      // Utiliser le service client pour mettre à jour la progression
+      const contentId = Array.isArray(params.id) ? params.id[0] : params.id
+      const result = await ContentProgressClient.updateProgress(
+        contentId,
+        Math.floor(watchTime),
+        content.duration
+      )
       
-      if (!response.ok) {
-        console.error('Erreur lors de la mise à jour de la progression')
-      } else {
-        // Si le contenu est complété à 100% pour la première fois, déclencher la redirection vers le QCM
-        if (isCompleted) {
+      if (result.success) {
+        // Si le contenu est complété pour la première fois, déclencher la redirection vers le QCM
+        if (result.data.isCompleted && !content.isCompleted) {
           setContent(prev => prev ? { ...prev, isCompleted: true } : null)
           setShowCompletionModal(true)
         }
+      } else {
+        throw new Error(result.error || 'Erreur lors de la mise à jour de la progression')
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la progression:', error)
+      toast.error('Impossible de mettre à jour la progression')
     } finally {
       setUpdateInProgress(false)
     }

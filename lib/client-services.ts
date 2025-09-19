@@ -54,20 +54,31 @@ export class ModuleClient {
    * @returns Modules avec progression
    */
   static async getModules() {
-    const response = await fetch('/api/modules');
-    
-    if (!response.ok) {
-      const errorData = await response.json();
+    try {
+      const response = await fetch('/api/modules');
       
-      // Cas spécial: email non vérifié
-      if (errorData.emailNotVerified) {
-        throw new Error('Veuillez vérifier votre email avant d\'accéder aux modules');
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        // Cas spécial: email non vérifié
+        if (errorData.emailNotVerified) {
+          throw new Error('Veuillez vérifier votre email avant d\'accéder aux modules');
+        }
+        
+        throw new Error(errorData.error || 'Erreur lors de la récupération des modules');
       }
       
-      throw new Error(errorData.error || 'Erreur lors de la récupération des modules');
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Erreur dans ModuleClient.getModules:', error);
+      // Retourner une réponse par défaut pour éviter les erreurs d'affichage
+      return {
+        success: false,
+        modules: [],
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération des modules',
+      };
     }
-    
-    return response.json();
   }
 }
 

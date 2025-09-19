@@ -428,7 +428,7 @@ export default function QuizPage() {
                     {formatTime(timeLeft)}
                   </Badge>
                 </div>
-                <Progress value={((currentQuestion + 1) / quiz.questions.length) * 100} className="h-2" />
+                <Progress value={(Object.keys(answers).length / quiz.questions.length) * 100} className="h-2" />
               </CardHeader>
               
               <CardContent className="space-y-6">

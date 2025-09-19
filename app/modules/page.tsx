@@ -385,15 +385,13 @@ export default function ModulesPage() {
                     </Button>
                   </div>
 
-                  {typeof module.progress === 'number' && (
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>Progression du module</span>
-                        <span>{Math.round(module.progress)}%</span>
-                      </div>
-                      <Progress value={module.progress} className="h-2" />
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                      <span>Progression du module</span>
+                      <span>{typeof module.progress === 'number' ? Math.round(module.progress) : 0}%</span>
                     </div>
-                  )}
+                    <Progress value={typeof module.progress === 'number' ? module.progress : 0} className="h-2" />
+                  </div>
 
                   {/* Chapitres */}
                   {expandedModules.has(module.id) && module.chapters && (
@@ -502,7 +500,7 @@ export default function ModulesPage() {
                                     <span className="text-sm font-medium">Quiz de validation</span>
                                   </div>
                                   {chapter.allContentsCompleted && !chapter.quizPassed ? (
-                                    <Link href={`/quiz/${chapter.id}`}>
+                                    <Link href={`/quiz/${chapter.id}`} prefetch={true}>
                                       <Button size="sm" className="bg-purple-500 hover:bg-purple-600">
                                         Passer le QCM
                                       </Button>
@@ -513,7 +511,7 @@ export default function ModulesPage() {
                                         <CheckCircle className="w-3 h-3 mr-1" />
                                         Chapitre validé
                                       </Badge>
-                                      <Link href={`/quiz/${chapter.id}`}>
+                                      <Link href={`/quiz/${chapter.id}`} prefetch={true}>
                                         <Button size="sm" variant="outline" className="text-xs">
                                           <RefreshCw className="w-3 h-3 mr-1" />
                                           Refaire
